@@ -202,14 +202,16 @@ function renderProfitStats(profitStats) {
     profitList.className = "profit-list";
     profitStats.forEach((stat) => {
         const fragment = profitTemplate.content.cloneNode(true);
-        const gapNode = fragment.querySelector(".gap-amount");
+        const expectedProfitNode = fragment.querySelector(".expected-profit-amount");
+        const actualProfitNode = fragment.querySelector(".actual-profit-amount");
         fragment.querySelector(".project-name").textContent = stat.projectName;
         fragment.querySelector(".company-name").textContent = stat.signatoryCompany;
-        fragment.querySelector(".cumulative-due-amount").textContent = moneyFormatter.format(stat.cumulativeDueAmount);
-        fragment.querySelector(".cumulative-actual-amount").textContent = moneyFormatter.format(stat.cumulativeActualAmount);
-        gapNode.textContent = moneyFormatter.format(stat.gapAmount);
-        gapNode.classList.toggle("gap-negative", Number(stat.gapAmount) < 0);
-        gapNode.classList.toggle("gap-positive", Number(stat.gapAmount) >= 0);
+        fragment.querySelector(".cumulative-receivable-due-amount").textContent = moneyFormatter.format(stat.cumulativeReceivableDueAmount);
+        fragment.querySelector(".cumulative-payable-due-amount").textContent = moneyFormatter.format(stat.cumulativePayableDueAmount);
+        fragment.querySelector(".cumulative-received-amount").textContent = moneyFormatter.format(stat.cumulativeReceivedAmount);
+        fragment.querySelector(".cumulative-paid-amount").textContent = moneyFormatter.format(stat.cumulativePaidAmount);
+        applyProfitValue(expectedProfitNode, stat.expectedProfitAmount);
+        applyProfitValue(actualProfitNode, stat.actualProfitAmount);
         profitList.appendChild(fragment);
     });
 }
@@ -319,6 +321,18 @@ function applyTypeClass(element, type) {
 
 function formatDate(value) {
     return dateFormatter.format(new Date(value));
+}
+
+function formatSignedMoney(value) {
+    const amount = Math.round(Number(value) || 0);
+    const sign = amount >= 0 ? "+" : "-";
+    return `${sign}${moneyFormatter.format(Math.abs(amount))}`;
+}
+
+function applyProfitValue(node, value) {
+    node.textContent = formatSignedMoney(value);
+    node.classList.toggle("gap-negative", Number(value) < 0);
+    node.classList.toggle("gap-positive", Number(value) >= 0);
 }
 
 function startEdit(contract) {

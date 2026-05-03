@@ -283,6 +283,10 @@ button:hover {
     margin: 12px 0 0;
 }
 
+.profit-meta-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .meta-list div,
 .summary-grid div {
     display: flex;
@@ -352,6 +356,21 @@ button:hover {
     padding: 20px;
 }
 
+.profit-card .meta-list div {
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.profit-card .meta-list dt {
+    color: var(--muted);
+}
+
+.profit-card .meta-list dd,
+.profit-value {
+    font-weight: 700;
+}
+
 .detail-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     margin-top: 20px;
@@ -390,7 +409,7 @@ button:hover {
 
 .gap-negative,
 .overdue-positive {
-    color: #ffd0d0;
+    color: var(--danger);
 }
 
 .gap-positive {
@@ -518,5 +537,9 @@ button:hover {
 
     .contract-actions-bottom {
         align-items: stretch;
+    }
+
+    .profit-meta-list {
+        grid-template-columns: 1fr;
     }
 }

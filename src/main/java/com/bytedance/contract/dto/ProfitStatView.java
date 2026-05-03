@@ -5,8 +5,11 @@ import java.math.BigDecimal;
 public record ProfitStatView(
         String signatoryCompany,
         String projectName,
-        BigDecimal cumulativeDueAmount,
-        BigDecimal cumulativeActualAmount,
-        BigDecimal gapAmount
+        BigDecimal cumulativeReceivableDueAmount,
+        BigDecimal cumulativePayableDueAmount,
+        BigDecimal cumulativeReceivedAmount,
+        BigDecimal cumulativePaidAmount,
+        BigDecimal expectedProfitAmount,
+        BigDecimal actualProfitAmount
 ) {
 }

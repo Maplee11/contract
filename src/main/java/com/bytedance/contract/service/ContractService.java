@@ -88,14 +88,17 @@ public class ContractService {
                 ));
             }
 
+            String profitKey = contract.getSignatoryCompany() + "||" + contract.getProjectName();
+            ProfitAccumulator accumulator = profitMap.computeIfAbsent(
+                    profitKey,
+                    ignored -> new ProfitAccumulator(contract.getSignatoryCompany(), contract.getProjectName())
+            );
             if (contract.getType() == ContractType.RECEIVABLE) {
-                String profitKey = contract.getSignatoryCompany() + "||" + contract.getProjectName();
-                ProfitAccumulator accumulator = profitMap.computeIfAbsent(
-                        profitKey,
-                        ignored -> new ProfitAccumulator(contract.getSignatoryCompany(), contract.getProjectName())
-                );
-                accumulator.addDue(cumulativeDueAmount);
-                accumulator.addActual(cumulativeActualAmount);
+                accumulator.addReceivableDue(cumulativeDueAmount);
+                accumulator.addReceivedActual(cumulativeActualAmount);
+            } else {
+                accumulator.addPayableDue(cumulativeDueAmount);
+                accumulator.addPaidActual(cumulativeActualAmount);
             }
         }
 
@@ -498,29 +501,44 @@ public class ContractService {
     private static final class ProfitAccumulator {
         private final String signatoryCompany;
         private final String projectName;
-        private BigDecimal dueAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
-        private BigDecimal actualAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        private BigDecimal receivableDueAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        private BigDecimal payableDueAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        private BigDecimal receivedActualAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        private BigDecimal paidActualAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
 
         private ProfitAccumulator(String signatoryCompany, String projectName) {
             this.signatoryCompany = signatoryCompany;
             this.projectName = projectName;
         }
 
-        private void addDue(BigDecimal amount) {
-            dueAmount = dueAmount.add(amount).setScale(2, RoundingMode.HALF_UP);
+        private void addReceivableDue(BigDecimal amount) {
+            receivableDueAmount = receivableDueAmount.add(amount).setScale(2, RoundingMode.HALF_UP);
         }
 
-        private void addActual(BigDecimal amount) {
-            actualAmount = actualAmount.add(amount).setScale(2, RoundingMode.HALF_UP);
+        private void addPayableDue(BigDecimal amount) {
+            payableDueAmount = payableDueAmount.add(amount).setScale(2, RoundingMode.HALF_UP);
+        }
+
+        private void addReceivedActual(BigDecimal amount) {
+            receivedActualAmount = receivedActualAmount.add(amount).setScale(2, RoundingMode.HALF_UP);
+        }
+
+        private void addPaidActual(BigDecimal amount) {
+            paidActualAmount = paidActualAmount.add(amount).setScale(2, RoundingMode.HALF_UP);
         }
 
         private ProfitStatView toView() {
+            BigDecimal expectedProfitAmount = receivableDueAmount.subtract(payableDueAmount).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal actualProfitAmount = receivedActualAmount.subtract(paidActualAmount).setScale(2, RoundingMode.HALF_UP);
             return new ProfitStatView(
                     signatoryCompany,
                     projectName,
-                    dueAmount,
-                    actualAmount,
-                    dueAmount.subtract(actualAmount).setScale(2, RoundingMode.HALF_UP)
+                    receivableDueAmount,
+                    payableDueAmount,
+                    receivedActualAmount,
+                    paidActualAmount,
+                    expectedProfitAmount,
+                    actualProfitAmount
             );
         }
     }

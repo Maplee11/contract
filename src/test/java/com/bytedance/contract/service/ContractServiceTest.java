@@ -93,6 +93,46 @@ class ContractServiceTest {
     }
 
     @Test
+    void profitStatsShouldMergeContractsBySignatoryCompanyAndProjectName() {
+        ContractStorageService storageService = new ContractStorageService(tempDir.resolve("contracts.json").toString());
+        ContractService service = new ContractService(storageService);
+
+        Contract receivableContract = buildContract(LocalDate.now().minusDays(10), null, LocalDate.now().plusMonths(2), 1);
+        receivableContract.setSignatoryCompany("集团总部");
+        receivableContract.setProjectName("园区一期");
+        receivableContract.getActualCycleAmounts().put(receivableContract.getLeaseStartDate().toString(), new BigDecimal("1100.00"));
+
+        Contract payableContract = buildContract(LocalDate.now().minusDays(10), null, LocalDate.now().plusMonths(2), 1);
+        payableContract.setType(ContractType.PAYABLE);
+        payableContract.setSignatoryCompany("集团总部");
+        payableContract.setProjectName("园区一期");
+        payableContract.setMonthlyRent(new BigDecimal("500"));
+        payableContract.setMonthlyPropertyFee(new BigDecimal("50"));
+        payableContract.getActualCycleAmounts().put(payableContract.getLeaseStartDate().toString(), new BigDecimal("550.00"));
+
+        Contract anotherReceivableContract = buildContract(LocalDate.now().minusDays(10), null, LocalDate.now().plusMonths(2), 1);
+        anotherReceivableContract.setSignatoryCompany("集团总部");
+        anotherReceivableContract.setProjectName("园区一期");
+        anotherReceivableContract.setMonthlyRent(new BigDecimal("900"));
+        anotherReceivableContract.setMonthlyPropertyFee(new BigDecimal("0"));
+        anotherReceivableContract.getActualCycleAmounts().put(anotherReceivableContract.getLeaseStartDate().toString(), new BigDecimal("900.00"));
+
+        storageService.saveAll(List.of(receivableContract, payableContract, anotherReceivableContract));
+
+        DashboardResponse dashboard = service.getDashboard();
+
+        assertThat(dashboard.profitStats()).hasSize(1);
+        assertThat(dashboard.profitStats().get(0).signatoryCompany()).isEqualTo("集团总部");
+        assertThat(dashboard.profitStats().get(0).projectName()).isEqualTo("园区一期");
+        assertThat(dashboard.profitStats().get(0).cumulativeReceivableDueAmount()).isEqualByComparingTo("2000.00");
+        assertThat(dashboard.profitStats().get(0).cumulativePayableDueAmount()).isEqualByComparingTo("550.00");
+        assertThat(dashboard.profitStats().get(0).cumulativeReceivedAmount()).isEqualByComparingTo("2000.00");
+        assertThat(dashboard.profitStats().get(0).cumulativePaidAmount()).isEqualByComparingTo("550.00");
+        assertThat(dashboard.profitStats().get(0).expectedProfitAmount()).isEqualByComparingTo("1450.00");
+        assertThat(dashboard.profitStats().get(0).actualProfitAmount()).isEqualByComparingTo("1450.00");
+    }
+
+    @Test
     void cumulativeDueAmountShouldOnlyIncludeCyclesInReminderWindow() {
         ContractStorageService storageService = new ContractStorageService(tempDir.resolve("contracts.json").toString());
         ContractService service = new ContractService(storageService);
