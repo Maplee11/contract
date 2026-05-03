@@ -4,12 +4,15 @@ const formTitle = document.getElementById("formTitle");
 const submitButton = document.getElementById("submitButton");
 const cancelEditButton = document.getElementById("cancelEditButton");
 const contractList = document.getElementById("contractList");
+const profitList = document.getElementById("profitList");
 const reminderList = document.getElementById("reminderList");
 const statsList = document.getElementById("statsList");
 const reminderFilter = document.getElementById("reminderFilter");
+const dateInputs = document.querySelectorAll(".date-input");
 
 const reminderTemplate = document.getElementById("reminderCardTemplate");
 const contractTemplate = document.getElementById("contractCardTemplate");
+const profitTemplate = document.getElementById("profitCardTemplate");
 const statsTemplate = document.getElementById("statsCardTemplate");
 
 const moneyFormatter = new Intl.NumberFormat("zh-CN", {
@@ -28,6 +31,7 @@ let dashboardState = {
     contracts: [],
     reminders: [],
     contractStats: [],
+    profitStats: [],
     inputSuggestions: {}
 };
 
@@ -62,6 +66,7 @@ async function loadDashboard() {
     dashboardState = await request("/api/dashboard");
     renderSuggestions(dashboardState.inputSuggestions);
     renderContracts(dashboardState.contracts);
+    renderProfitStats(dashboardState.profitStats);
     renderReminders(dashboardState.reminders);
     renderStats(dashboardState.contractStats);
 }
@@ -141,7 +146,7 @@ function renderReminders(reminders) {
     buildGroupedSections(visibleReminders, reminderList, renderReminderCard, {
         RECEIVABLE: "收款提醒",
         PAYABLE: "付款提醒"
-    });
+    }, "reminder-group");
 }
 
 function renderReminderCard(reminder, container) {
@@ -181,6 +186,30 @@ function renderStats(contractStats) {
     buildGroupedSections(contractStats, statsList, renderStatsCard, {
         RECEIVABLE: "收款合同",
         PAYABLE: "付款合同"
+    }, "stats-group");
+}
+
+function renderProfitStats(profitStats) {
+    profitList.innerHTML = "";
+
+    if (!profitStats.length) {
+        profitList.className = "profit-list empty-state";
+        profitList.textContent = "暂无利润统计";
+        return;
+    }
+
+    profitList.className = "profit-list";
+    profitStats.forEach((stat) => {
+        const fragment = profitTemplate.content.cloneNode(true);
+        const gapNode = fragment.querySelector(".gap-amount");
+        fragment.querySelector(".project-name").textContent = stat.projectName;
+        fragment.querySelector(".company-name").textContent = stat.signatoryCompany;
+        fragment.querySelector(".cumulative-due-amount").textContent = moneyFormatter.format(stat.cumulativeDueAmount);
+        fragment.querySelector(".cumulative-actual-amount").textContent = moneyFormatter.format(stat.cumulativeActualAmount);
+        gapNode.textContent = moneyFormatter.format(stat.gapAmount);
+        gapNode.classList.toggle("gap-negative", Number(stat.gapAmount) < 0);
+        gapNode.classList.toggle("gap-positive", Number(stat.gapAmount) >= 0);
+        profitList.appendChild(fragment);
     });
 }
 
@@ -196,12 +225,15 @@ function renderStatsCard(stat, container) {
     fragment.querySelector(".current-label").textContent = labels.current;
     fragment.querySelector(".cumulative-due-label").textContent = labels.cumulativeDue;
     fragment.querySelector(".cumulative-actual-label").textContent = labels.cumulativeActual;
+    fragment.querySelector(".current-cycle-text").textContent = stat.cycleStartDate
+        ? `当前周期：${formatDate(stat.cycleStartDate)} - ${formatDate(stat.cycleEndDate)}`
+        : "";
     fragment.querySelector(".current-amount").textContent = moneyFormatter.format(stat.currentCycleAmount);
     fragment.querySelector(".cumulative-due-amount").textContent = moneyFormatter.format(stat.cumulativeDueAmount);
     fragment.querySelector(".cumulative-actual-amount").textContent = moneyFormatter.format(stat.cumulativeActualAmount);
-    fragment.querySelector(".cycle-range").textContent = stat.cycleStartDate
-        ? `${formatDate(stat.cycleStartDate)} - ${formatDate(stat.cycleEndDate)}`
-        : "全部已完成";
+    const overdueNode = fragment.querySelector(".overdue-amount");
+    overdueNode.textContent = moneyFormatter.format(stat.overdueAmount);
+    overdueNode.classList.toggle("overdue-positive", Number(stat.overdueAmount) > 0);
     fragment.querySelector(".status-text").textContent = stat.settled
         ? "全部完成"
         : (stat.daysUntilDue >= 0 ? `距离缴费日 ${stat.daysUntilDue} 天` : `已逾期 ${Math.abs(stat.daysUntilDue)} 天`);
@@ -238,7 +270,7 @@ function renderStatsCard(stat, container) {
     container.appendChild(fragment);
 }
 
-function buildGroupedSections(items, target, renderer, titleMap) {
+function buildGroupedSections(items, target, renderer, titleMap, groupClassName = "stats-group") {
     const groups = [
         { key: "RECEIVABLE", title: titleMap.RECEIVABLE },
         { key: "PAYABLE", title: titleMap.PAYABLE }
@@ -251,7 +283,7 @@ function buildGroupedSections(items, target, renderer, titleMap) {
         }
 
         const wrapper = document.createElement("section");
-        wrapper.className = "stats-group";
+        wrapper.className = groupClassName;
         const title = document.createElement("h3");
         title.className = "group-title";
         title.textContent = group.title;
@@ -306,6 +338,7 @@ function startEdit(contract) {
     formTitle.textContent = "修改合同";
     submitButton.textContent = "保存修改";
     cancelEditButton.hidden = false;
+    refreshDateInputState();
     form.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -315,6 +348,7 @@ function resetForm() {
     formTitle.textContent = "录入合同";
     submitButton.textContent = "保存合同";
     cancelEditButton.hidden = true;
+    refreshDateInputState();
 }
 
 async function removeContract(contractId) {
@@ -379,13 +413,26 @@ form.addEventListener("submit", async (event) => {
             body: JSON.stringify(payload)
         });
         resetForm();
-        formMessage.textContent = contractId ? "合同修改成功" : "合同保存成功";
+        formMessage.textContent = contractId ? "保存成功" : "合同保存成功";
         await loadDashboard();
     } catch (error) {
         formMessage.textContent = error.message;
     }
 });
 
+function refreshDateInputState() {
+    dateInputs.forEach((input) => {
+        input.classList.toggle("has-value", Boolean(input.value));
+    });
+}
+
+dateInputs.forEach((input) => {
+    input.addEventListener("change", refreshDateInputState);
+    input.addEventListener("input", refreshDateInputState);
+});
+
 loadDashboard().catch((error) => {
     formMessage.textContent = error.message;
 });
+
+refreshDateInputState();

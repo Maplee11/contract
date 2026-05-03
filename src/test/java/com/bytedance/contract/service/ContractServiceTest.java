@@ -88,6 +88,27 @@ class ContractServiceTest {
         DashboardResponse dashboard = service.getDashboard();
         assertThat(dashboard.inputSuggestions().projectNames()).containsExactly("园区 B", "园区 A");
         assertThat(dashboard.inputSuggestions().signatoryCompanies()).contains("集团总部", "甲方公司");
+        assertThat(dashboard.profitStats()).hasSize(2);
+    }
+
+    @Test
+    void cumulativeDueAmountShouldOnlyIncludeCyclesInReminderWindow() {
+        ContractStorageService storageService = new ContractStorageService(tempDir.resolve("contracts.json").toString());
+        ContractService service = new ContractService(storageService);
+
+        LocalDate leaseStartDate = LocalDate.now().minusDays(10);
+        Contract contract = buildContract(
+                leaseStartDate,
+                null,
+                leaseStartDate.plusMonths(3).plusDays(5),
+                1
+        );
+        storageService.saveAll(List.of(contract));
+
+        DashboardResponse dashboard = service.getDashboard();
+        assertThat(dashboard.contractStats()).hasSize(1);
+        assertThat(dashboard.contractStats().get(0).cumulativeDueAmount()).isEqualByComparingTo("1100.00");
+        assertThat(dashboard.contractStats().get(0).overdueAmount()).isEqualByComparingTo("1100.00");
     }
 
     private Contract buildContract(

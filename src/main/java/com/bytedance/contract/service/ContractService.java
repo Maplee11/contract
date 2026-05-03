@@ -5,9 +5,11 @@ import com.bytedance.contract.dto.ContractStatsView;
 import com.bytedance.contract.dto.ContractView;
 import com.bytedance.contract.dto.DashboardResponse;
 import com.bytedance.contract.dto.InputSuggestions;
+import com.bytedance.contract.dto.ProfitStatView;
 import com.bytedance.contract.dto.ReminderView;
 import com.bytedance.contract.dto.SettleCycleRequest;
 import com.bytedance.contract.model.Contract;
+import com.bytedance.contract.model.ContractType;
 import com.bytedance.contract.storage.ContractStorageService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -41,15 +43,27 @@ public class ContractService {
         List<ContractView> contractViews = new ArrayList<>();
         List<ReminderView> reminders = new ArrayList<>();
         List<ContractStatsView> contractStats = new ArrayList<>();
+        List<ProfitStatView> profitStats = new ArrayList<>();
         LocalDate today = LocalDate.now();
+        Map<String, ProfitAccumulator> profitMap = new LinkedHashMap<>();
 
         for (Contract contract : contracts) {
             ContractMetrics metrics = calculateMetrics(contract);
             Map<String, BigDecimal> settledAmounts = resolveSettledAmounts(contract, metrics);
             BillingCycle currentCycle = findCurrentCycle(metrics.cycles(), settledAmounts.keySet());
+            BigDecimal cumulativeDueAmount = calculateCumulativeDueAmount(metrics, today);
+            BigDecimal cumulativeActualAmount = sumAmounts(settledAmounts);
 
             contractViews.add(toContractView(contract, metrics, settledAmounts));
-            contractStats.add(toContractStatsView(contract, metrics, settledAmounts, currentCycle, today));
+            contractStats.add(toContractStatsView(
+                    contract,
+                    metrics,
+                    settledAmounts,
+                    currentCycle,
+                    cumulativeDueAmount,
+                    cumulativeActualAmount,
+                    today
+            ));
 
             if (currentCycle != null && !today.isBefore(currentCycle.reminderDate())) {
                 reminders.add(new ReminderView(
@@ -69,13 +83,27 @@ public class ContractService {
                         calculateProgressPercent(currentCycle.reminderDate(), currentCycle.dueDate(), today)
                 ));
             }
+
+            if (contract.getType() == ContractType.RECEIVABLE) {
+                String profitKey = contract.getSignatoryCompany() + "||" + contract.getProjectName();
+                ProfitAccumulator accumulator = profitMap.computeIfAbsent(
+                        profitKey,
+                        ignored -> new ProfitAccumulator(contract.getSignatoryCompany(), contract.getProjectName())
+                );
+                accumulator.addDue(cumulativeDueAmount);
+                accumulator.addActual(cumulativeActualAmount);
+            }
         }
 
         contractViews.sort(Comparator.comparing(ContractView::createdAt).reversed());
         reminders.sort(Comparator.comparing(ReminderView::type).thenComparing(ReminderView::dueDate));
         contractStats.sort(Comparator.comparing(ContractStatsView::projectName));
+        profitStats.addAll(profitMap.values().stream()
+                .map(ProfitAccumulator::toView)
+                .sorted(Comparator.comparing(ProfitStatView::signatoryCompany).thenComparing(ProfitStatView::projectName))
+                .toList());
 
-        return new DashboardResponse(contractViews, reminders, contractStats, buildSuggestions(contracts));
+        return new DashboardResponse(contractViews, reminders, contractStats, profitStats, buildSuggestions(contracts));
     }
 
     public Contract createContract(ContractRequest request) {
@@ -238,9 +266,11 @@ public class ContractService {
             ContractMetrics metrics,
             Map<String, BigDecimal> settledAmounts,
             BillingCycle currentCycle,
+            BigDecimal cumulativeDueAmount,
+            BigDecimal cumulativeActualAmount,
             LocalDate today
     ) {
-        BigDecimal cumulativeActualAmount = sumAmounts(settledAmounts);
+        BigDecimal overdueAmount = cumulativeDueAmount.subtract(cumulativeActualAmount).setScale(2, RoundingMode.HALF_UP);
         if (currentCycle == null) {
             return new ContractStatsView(
                     contract.getId(),
@@ -254,17 +284,14 @@ public class ContractService {
                     null,
                     null,
                     BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
-                    metrics.totalAmount(),
+                    cumulativeDueAmount,
                     cumulativeActualAmount,
+                    overdueAmount,
                     100D,
                     0L,
                     true
             );
         }
-
-        BigDecimal cumulativeDueAmount = metrics.cycleAmount()
-                .multiply(BigDecimal.valueOf(currentCycle.index()))
-                .setScale(2, RoundingMode.HALF_UP);
 
         return new ContractStatsView(
                 contract.getId(),
@@ -280,6 +307,7 @@ public class ContractService {
                 metrics.cycleAmount(),
                 cumulativeDueAmount,
                 cumulativeActualAmount,
+                overdueAmount,
                 calculateProgressPercent(currentCycle.reminderDate(), currentCycle.dueDate(), today),
                 ChronoUnit.DAYS.between(today, currentCycle.dueDate()),
                 false
@@ -408,6 +436,16 @@ public class ContractService {
         return Math.min(100D, (remainingDays * 100D) / totalDays);
     }
 
+    private BigDecimal calculateCumulativeDueAmount(ContractMetrics metrics, LocalDate today) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (BillingCycle cycle : metrics.cycles()) {
+            if (!today.isBefore(cycle.reminderDate())) {
+                total = total.add(metrics.cycleAmount());
+            }
+        }
+        return total.setScale(2, RoundingMode.HALF_UP);
+    }
+
     private BigDecimal sumAmounts(Map<String, BigDecimal> amounts) {
         BigDecimal total = BigDecimal.ZERO;
         for (BigDecimal amount : amounts.values()) {
@@ -440,5 +478,35 @@ public class ContractService {
             long chargeableMonths,
             List<BillingCycle> cycles
     ) {
+    }
+
+    private static final class ProfitAccumulator {
+        private final String signatoryCompany;
+        private final String projectName;
+        private BigDecimal dueAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        private BigDecimal actualAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+
+        private ProfitAccumulator(String signatoryCompany, String projectName) {
+            this.signatoryCompany = signatoryCompany;
+            this.projectName = projectName;
+        }
+
+        private void addDue(BigDecimal amount) {
+            dueAmount = dueAmount.add(amount).setScale(2, RoundingMode.HALF_UP);
+        }
+
+        private void addActual(BigDecimal amount) {
+            actualAmount = actualAmount.add(amount).setScale(2, RoundingMode.HALF_UP);
+        }
+
+        private ProfitStatView toView() {
+            return new ProfitStatView(
+                    signatoryCompany,
+                    projectName,
+                    dueAmount,
+                    actualAmount,
+                    dueAmount.subtract(actualAmount).setScale(2, RoundingMode.HALF_UP)
+            );
+        }
     }
 }

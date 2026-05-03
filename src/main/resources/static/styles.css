@@ -11,6 +11,8 @@
     --receivable: #63e5b8;
     --payable: #ffb36c;
     --success: #7df0ba;
+    --warning: #ffd36e;
+    --danger: #ff7676;
     --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
 }
 
@@ -63,7 +65,6 @@ body {
     margin: 0;
 }
 
-.panel-description,
 .tip,
 .company-name,
 .empty-state,
@@ -111,7 +112,9 @@ label span,
 }
 
 .panel-select {
+    display: block;
     min-width: 132px;
+    margin: 14px 0 18px;
     padding: 12px 14px;
     background: rgba(255, 255, 255, 0.94);
     color: #10203a;
@@ -162,9 +165,11 @@ button:focus {
 .primary-btn,
 .ghost-btn,
 .success-btn {
+    min-height: 44px;
     padding: 12px 18px;
+    border: 1px solid transparent;
     cursor: pointer;
-    transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease;
+    transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
 
 .primary-btn {
@@ -184,6 +189,23 @@ button:focus {
     font-weight: 700;
 }
 
+.edit-btn {
+    background: linear-gradient(135deg, var(--warning), #ffe7a6);
+    color: #3a2900;
+    font-weight: 700;
+}
+
+.delete-btn {
+    background: linear-gradient(135deg, var(--danger), #ff9b9b);
+    color: #fff4f4;
+    font-weight: 700;
+}
+
+.manual-btn {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
 button:hover {
     transform: translateY(-1px);
 }
@@ -194,7 +216,8 @@ button:hover {
 }
 
 .card-stack,
-.contract-list {
+.contract-list,
+.profit-list {
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -234,6 +257,12 @@ button:hover {
 .project-name {
     margin: 12px 0 6px;
     font-size: 20px;
+}
+
+.current-cycle-text {
+    margin: 0 0 14px;
+    color: var(--muted);
+    font-size: 13px;
 }
 
 .meta-list,
@@ -313,6 +342,10 @@ button:hover {
     padding: 22px;
 }
 
+.profit-card {
+    padding: 20px;
+}
+
 .detail-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     margin-top: 20px;
@@ -334,33 +367,28 @@ button:hover {
 }
 
 .summary-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     margin-top: 20px;
     padding-top: 20px;
     border-top: 1px solid var(--line);
 }
 
-.summary-grid strong {
-    font-size: 24px;
+.summary-item {
+    justify-content: flex-start !important;
+    align-items: baseline;
 }
 
-.stats-card,
-.reminder-card {
-    position: relative;
-    overflow: hidden;
+.summary-item strong {
+    font-size: 18px;
 }
 
-.stats-card::after,
-.reminder-card::after,
-.contract-card::after {
-    content: "";
-    position: absolute;
-    inset: auto -40px -40px auto;
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.06);
-    pointer-events: none;
+.gap-negative,
+.overdue-positive {
+    color: #ffd0d0;
+}
+
+.gap-positive {
+    color: var(--success);
 }
 
 .settle-panel {
@@ -375,15 +403,23 @@ button:hover {
 
 .actual-amount-input {
     flex: 1;
+    min-height: 52px;
+    padding: 14px 18px;
+    font-size: 18px;
+}
+
+.actual-amount-input::-webkit-outer-spin-button,
+.actual-amount-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.actual-amount-input[type="number"] {
+    -moz-appearance: textfield;
 }
 
 .settled-view {
-    display: flex;
-    justify-content: center;
-    padding: 14px;
-    border-radius: 16px;
-    background: rgba(125, 240, 186, 0.12);
-    color: var(--success);
+    display: none;
 }
 
 .group-title {
@@ -399,6 +435,23 @@ button:hover {
     display: flex;
     flex-direction: column;
     gap: 14px;
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+    opacity: 1;
+    cursor: pointer;
+}
+
+.date-input::-webkit-datetime-edit {
+    color: transparent;
+}
+
+.date-input.has-value::-webkit-datetime-edit {
+    color: #10203a;
+}
+
+.date-input:focus::-webkit-datetime-edit {
+    color: #10203a;
 }
 
 @media (max-width: 1440px) {
@@ -442,7 +495,8 @@ button:hover {
     .panel-header,
     .card-actions,
     .contract-actions,
-    .settle-row {
+    .settle-row,
+    .summary-item {
         flex-direction: column;
         align-items: flex-start;
     }

@@ -19,6 +19,7 @@ public record ContractStatsView(
         BigDecimal currentCycleAmount,
         BigDecimal cumulativeDueAmount,
         BigDecimal cumulativeActualAmount,
+        BigDecimal overdueAmount,
         double progressPercent,
         long daysUntilDue,
         boolean settled
