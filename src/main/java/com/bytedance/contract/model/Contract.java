@@ -28,6 +28,7 @@ public class Contract {
     private Set<String> completedCycleKeys = new LinkedHashSet<>();
     private Set<String> arrearsCycleKeys = new LinkedHashSet<>();
     private LocalDateTime createdAt;
+    private boolean deleted;
 
     public UUID getId() {
         return id;
@@ -163,5 +164,13 @@ public class Contract {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
     }
 }

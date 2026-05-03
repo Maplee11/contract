@@ -8,6 +8,7 @@ import com.bytedance.contract.model.Contract;
 import com.bytedance.contract.model.ContractType;
 import com.bytedance.contract.storage.ContractStorageService;
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -78,9 +79,9 @@ class ContractServiceTest {
         ContractStorageService storageService = new ContractStorageService(tempDir.resolve("contracts.json").toString());
         ContractService service = new ContractService(storageService);
 
-        Contract first = buildContract(LocalDate.of(2026, 1, 1), null, LocalDate.of(2026, 3, 31), 1);
+        Contract first = buildContract(LocalDate.now(), null, LocalDate.now().plusMonths(3), 1);
         first.setProjectName("园区 A");
-        Contract second = buildContract(LocalDate.of(2026, 4, 1), null, LocalDate.of(2026, 6, 30), 1);
+        Contract second = buildContract(LocalDate.now().plusMonths(1), null, LocalDate.now().plusMonths(6), 1);
         second.setProjectName("园区 B");
         second.setSignatoryCompany("集团总部");
         storageService.saveAll(List.of(first, second));
@@ -109,6 +110,47 @@ class ContractServiceTest {
         assertThat(dashboard.contractStats()).hasSize(1);
         assertThat(dashboard.contractStats().get(0).cumulativeDueAmount()).isEqualByComparingTo("1100.00");
         assertThat(dashboard.contractStats().get(0).overdueAmount()).isEqualByComparingTo("1100.00");
+    }
+
+    @Test
+    void deleteContractShouldSoftDeleteInsteadOfRemovingFromJson() throws Exception {
+        Path storagePath = tempDir.resolve("contracts.json");
+        ContractStorageService storageService = new ContractStorageService(storagePath.toString());
+        ContractService service = new ContractService(storageService);
+
+        Contract contract = buildContract(LocalDate.now(), null, LocalDate.now().plusMonths(1), 1);
+        storageService.saveAll(List.of(contract));
+
+        service.deleteContract(contract.getId());
+
+        List<Contract> storedContracts = storageService.loadAll();
+        assertThat(storedContracts).hasSize(1);
+        assertThat(storedContracts.get(0).isDeleted()).isTrue();
+        assertThat(service.getDashboard().contracts()).isEmpty();
+        assertThat(Files.readString(storagePath)).contains("\"deleted\" : true");
+    }
+
+    @Test
+    void expiredContractShouldBeArchivedAndHiddenFromDashboard() {
+        ContractStorageService storageService = new ContractStorageService(tempDir.resolve("contracts.json").toString());
+        ContractService service = new ContractService(storageService);
+
+        Contract expiredContract = buildContract(
+                LocalDate.now().minusMonths(3),
+                null,
+                LocalDate.now().minusDays(1),
+                1
+        );
+        storageService.saveAll(List.of(expiredContract));
+
+        DashboardResponse dashboard = service.getDashboard();
+        List<Contract> storedContracts = storageService.loadAll();
+
+        assertThat(dashboard.contracts()).isEmpty();
+        assertThat(dashboard.reminders()).isEmpty();
+        assertThat(dashboard.contractStats()).isEmpty();
+        assertThat(storedContracts).hasSize(1);
+        assertThat(storedContracts.get(0).isDeleted()).isTrue();
     }
 
     private Contract buildContract(

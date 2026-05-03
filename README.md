@@ -17,7 +17,7 @@
 mvn spring-boot:run
 ```
 
-启动后访问 [http://localhost:8080](http://localhost:8080)。
+启动后访问 [http://localhost:62781](http://localhost:62781)。
 
 ## 打包
 
@@ -37,4 +37,4 @@ mvn clean package
 java -jar contract-reminder-1.0.0.jar
 ```
 
-应用启动后在浏览器打开 `http://localhost:8080` 即可。
+应用启动后在浏览器打开 `http://localhost:62781` 即可。

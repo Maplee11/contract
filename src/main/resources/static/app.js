@@ -18,7 +18,8 @@ const statsTemplate = document.getElementById("statsCardTemplate");
 const moneyFormatter = new Intl.NumberFormat("zh-CN", {
     style: "currency",
     currency: "CNY",
-    minimumFractionDigits: 2
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
 });
 
 const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
@@ -250,7 +251,7 @@ function renderStatsCard(stat, container) {
         const actualAmountInput = fragment.querySelector(".actual-amount-input");
 
         fragment.querySelector(".full-btn").textContent = stat.type === "RECEIVABLE" ? "全额收款" : "全额付款";
-        fragment.querySelector(".manual-btn").textContent = "记录并进入下一期";
+        fragment.querySelector(".manual-btn").textContent = "下一期";
         fragment.querySelector(".full-btn").addEventListener("click", () => {
             settleCycle(stat.contractId, stat.currentCycleKey, { fullPayment: true });
         });

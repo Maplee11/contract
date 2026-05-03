@@ -40,6 +40,10 @@ public class ContractService {
 
     public DashboardResponse getDashboard() {
         List<Contract> contracts = storageService.loadAll();
+        archiveExpiredContracts(contracts, LocalDate.now());
+        List<Contract> activeContracts = contracts.stream()
+                .filter(contract -> !contract.isDeleted())
+                .toList();
         List<ContractView> contractViews = new ArrayList<>();
         List<ReminderView> reminders = new ArrayList<>();
         List<ContractStatsView> contractStats = new ArrayList<>();
@@ -47,7 +51,7 @@ public class ContractService {
         LocalDate today = LocalDate.now();
         Map<String, ProfitAccumulator> profitMap = new LinkedHashMap<>();
 
-        for (Contract contract : contracts) {
+        for (Contract contract : activeContracts) {
             ContractMetrics metrics = calculateMetrics(contract);
             Map<String, BigDecimal> settledAmounts = resolveSettledAmounts(contract, metrics);
             BillingCycle currentCycle = findCurrentCycle(metrics.cycles(), settledAmounts.keySet());
@@ -103,7 +107,7 @@ public class ContractService {
                 .sorted(Comparator.comparing(ProfitStatView::signatoryCompany).thenComparing(ProfitStatView::projectName))
                 .toList());
 
-        return new DashboardResponse(contractViews, reminders, contractStats, profitStats, buildSuggestions(contracts));
+        return new DashboardResponse(contractViews, reminders, contractStats, profitStats, buildSuggestions(activeContracts));
     }
 
     public Contract createContract(ContractRequest request) {
@@ -123,7 +127,7 @@ public class ContractService {
     public Contract updateContract(UUID contractId, ContractRequest request) {
         validate(request);
         List<Contract> contracts = storageService.loadAll();
-        Contract contract = findContract(contracts, contractId);
+        Contract contract = findActiveContract(contracts, contractId);
 
         applyRequest(contract, request);
         pruneCycleState(contract);
@@ -133,16 +137,14 @@ public class ContractService {
 
     public void deleteContract(UUID contractId) {
         List<Contract> contracts = storageService.loadAll();
-        boolean removed = contracts.removeIf(contract -> contract.getId().equals(contractId));
-        if (!removed) {
-            throw new IllegalArgumentException("未找到合同");
-        }
+        Contract contract = findActiveContract(contracts, contractId);
+        contract.setDeleted(true);
         storageService.saveAll(contracts);
     }
 
     public void settleCycle(UUID contractId, String cycleKey, SettleCycleRequest request) {
         List<Contract> contracts = storageService.loadAll();
-        Contract contract = findContract(contracts, contractId);
+        Contract contract = findActiveContract(contracts, contractId);
         ContractMetrics metrics = calculateMetrics(contract);
         BillingCycle cycle = findCycle(metrics.cycles(), cycleKey);
 
@@ -197,11 +199,24 @@ public class ContractService {
         }
     }
 
-    private Contract findContract(List<Contract> contracts, UUID contractId) {
+    private Contract findActiveContract(List<Contract> contracts, UUID contractId) {
         return contracts.stream()
-                .filter(item -> item.getId().equals(contractId))
+                .filter(item -> item.getId().equals(contractId) && !item.isDeleted())
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("未找到合同"));
+    }
+
+    private void archiveExpiredContracts(List<Contract> contracts, LocalDate today) {
+        boolean changed = false;
+        for (Contract contract : contracts) {
+            if (!contract.isDeleted() && contract.getContractEndDate() != null && contract.getContractEndDate().isBefore(today)) {
+                contract.setDeleted(true);
+                changed = true;
+            }
+        }
+        if (changed) {
+            storageService.saveAll(contracts);
+        }
     }
 
     private BillingCycle findCycle(List<BillingCycle> cycles, String cycleKey) {

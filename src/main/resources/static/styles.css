@@ -33,7 +33,7 @@ body {
 
 .app-shell {
     display: grid;
-    grid-template-columns: 320px minmax(0, 1fr) 320px;
+    grid-template-columns: 320px minmax(0, 1fr) 384px;
     gap: 24px;
     padding: 24px;
 }
@@ -254,6 +254,12 @@ button:hover {
     justify-content: flex-end;
 }
 
+.contract-actions-bottom {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+}
+
 .project-name {
     margin: 12px 0 6px;
     font-size: 20px;
@@ -399,13 +405,22 @@ button:hover {
 
 .settle-form {
     margin-top: 12px;
+    align-items: stretch;
+    gap: 10px;
 }
 
 .actual-amount-input {
-    flex: 1;
-    min-height: 52px;
-    padding: 14px 18px;
-    font-size: 18px;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 40px;
+    padding: 8px 14px;
+    font-size: 16px;
+}
+
+.settle-form .manual-btn {
+    min-height: 40px;
+    padding: 8px 14px;
+    white-space: nowrap;
 }
 
 .actual-amount-input::-webkit-outer-spin-button,
@@ -456,7 +471,7 @@ button:hover {
 
 @media (max-width: 1440px) {
     .app-shell {
-        grid-template-columns: 280px minmax(0, 1fr) 280px;
+        grid-template-columns: 280px minmax(0, 1fr) 336px;
     }
 
     .contract-form {
@@ -499,5 +514,9 @@ button:hover {
     .summary-item {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .contract-actions-bottom {
+        align-items: stretch;
     }
 }
