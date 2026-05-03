@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>合同统计提醒系统</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="app-shell">
+    <aside class="side-panel">
+        <div class="panel-header">
+            <h2>提醒栏</h2>
+            <select id="reminderFilter" class="panel-select">
+                <option value="ALL">全部提醒</option>
+                <option value="RECEIVABLE">收款提醒</option>
+                <option value="PAYABLE">付款提醒</option>
+            </select>
+        </div>
+        <p class="panel-description">提醒按收付区分展示，仅保留完成按钮。</p>
+        <div id="reminderList" class="card-stack empty-state">暂无提醒</div>
+    </aside>
+
+    <main class="main-panel">
+        <section class="glass-panel">
+            <div class="section-title">
+                <h2 id="formTitle">录入合同</h2>
+                <span class="tip">字符串输入框支持历史值快速选择</span>
+            </div>
+
+            <form id="contractForm" class="contract-form">
+                <input type="hidden" name="contractId">
+                <label>
+                    <span>首选项</span>
+                    <select name="type" required>
+                        <option value="RECEIVABLE">应收款</option>
+                        <option value="PAYABLE">应付款</option>
+                    </select>
+                </label>
+                <label>
+                    <span>签约单位</span>
+                    <input type="text" name="signatoryCompany" list="signatoryCompanyList" required>
+                </label>
+                <label>
+                    <span>对方单位</span>
+                    <input type="text" name="counterpartyCompany" list="counterpartyCompanyList" required>
+                </label>
+                <label>
+                    <span>项目名称</span>
+                    <input type="text" name="projectName" list="projectNameList" required>
+                </label>
+                <label>
+                    <span>签约时间</span>
+                    <input type="date" name="signingDate" required>
+                </label>
+                <label>
+                    <span>签约面积</span>
+                    <input type="text" name="signedArea" list="signedAreaList" placeholder="例如 1200 平方米" required>
+                </label>
+                <label>
+                    <span>起租时间</span>
+                    <input type="date" name="leaseStartDate" required>
+                </label>
+                <label>
+                    <span>免租截止日</span>
+                    <input type="date" name="rentFreeEndDate">
+                </label>
+                <label>
+                    <span>合同终止时间</span>
+                    <input type="date" name="contractEndDate" required>
+                </label>
+                <label>
+                    <span>月租金</span>
+                    <input type="number" step="0.01" min="0" name="monthlyRent" required>
+                </label>
+                <label>
+                    <span>月物业费</span>
+                    <input type="number" step="0.01" min="0" name="monthlyPropertyFee" required>
+                </label>
+                <label>
+                    <span>缴费周期（月）</span>
+                    <input type="number" min="1" name="paymentCycleMonths" required>
+                </label>
+                <div class="form-actions">
+                    <button type="submit" id="submitButton" class="primary-btn">保存合同</button>
+                    <button type="button" id="cancelEditButton" class="ghost-btn" hidden>取消编辑</button>
+                    <p id="formMessage" class="form-message"></p>
+                </div>
+            </form>
+        </section>
+
+        <section class="glass-panel">
+            <div class="section-title">
+                <h2>合同列表</h2>
+            </div>
+            <div id="contractList" class="contract-list empty-state">暂无合同，请先录入。</div>
+        </section>
+    </main>
+
+    <aside class="side-panel">
+        <div class="panel-header">
+            <h2>合同统计栏</h2>
+        </div>
+        <p class="panel-description">按合同查看本期、累计与实收实付统计，并推进到下一期。</p>
+        <div id="statsList" class="card-stack empty-state">暂无合同统计</div>
+    </aside>
+</div>
+
+<datalist id="signatoryCompanyList"></datalist>
+<datalist id="counterpartyCompanyList"></datalist>
+<datalist id="projectNameList"></datalist>
+<datalist id="signedAreaList"></datalist>
+
+<template id="reminderCardTemplate">
+    <article class="info-card reminder-card">
+        <div class="card-top">
+            <span class="pill type-pill"></span>
+            <span class="status-text"></span>
+        </div>
+        <h3 class="project-name"></h3>
+        <p class="company-name"></p>
+        <dl class="meta-list">
+            <div>
+                <dt>本期金额</dt>
+                <dd class="cycle-amount"></dd>
+            </div>
+            <div>
+                <dt>周期</dt>
+                <dd class="cycle-range"></dd>
+            </div>
+            <div>
+                <dt>合同对方</dt>
+                <dd class="counterparty-name"></dd>
+            </div>
+            <div>
+                <dt>缴费日</dt>
+                <dd class="due-date"></dd>
+            </div>
+        </dl>
+        <div class="progress-block">
+            <div class="progress-track">
+                <span class="progress-bar"></span>
+            </div>
+        </div>
+        <div class="card-actions">
+            <button class="success-btn complete-btn">完成</button>
+        </div>
+    </article>
+</template>
+
+<template id="contractCardTemplate">
+    <article class="contract-card">
+        <div class="card-headline">
+            <div>
+                <div class="headline-row">
+                    <span class="pill type-pill"></span>
+                    <h3 class="project-name"></h3>
+                </div>
+                <p class="company-name"></p>
+            </div>
+            <div class="contract-actions">
+                <button class="ghost-btn edit-btn">修改</button>
+                <button class="ghost-btn delete-btn">删除</button>
+            </div>
+        </div>
+        <div class="detail-grid"></div>
+        <div class="summary-grid">
+            <div>
+                <span>合同期总金额</span>
+                <strong class="total-amount"></strong>
+            </div>
+            <div>
+                <span>缴费周期数</span>
+                <strong class="total-cycles"></strong>
+            </div>
+            <div>
+                <span>计费月数</span>
+                <strong class="chargeable-months"></strong>
+            </div>
+        </div>
+    </article>
+</template>
+
+<template id="statsCardTemplate">
+    <article class="info-card stats-card">
+        <div class="card-top">
+            <span class="pill type-pill"></span>
+            <span class="status-text"></span>
+        </div>
+        <h3 class="project-name"></h3>
+        <p class="company-name"></p>
+        <dl class="meta-list">
+            <div>
+                <dt class="current-label"></dt>
+                <dd class="current-amount"></dd>
+            </div>
+            <div>
+                <dt class="cumulative-due-label"></dt>
+                <dd class="cumulative-due-amount"></dd>
+            </div>
+            <div>
+                <dt class="cumulative-actual-label"></dt>
+                <dd class="cumulative-actual-amount"></dd>
+            </div>
+            <div>
+                <dt>当前周期</dt>
+                <dd class="cycle-range"></dd>
+            </div>
+        </dl>
+        <div class="progress-block">
+            <div class="progress-track">
+                <span class="progress-bar"></span>
+            </div>
+        </div>
+        <div class="settle-panel">
+            <div class="settled-view" hidden>
+                <span>所有周期已完成</span>
+            </div>
+            <div class="active-settle-view">
+                <div class="settle-row">
+                    <button class="success-btn full-btn" type="button">全额完成</button>
+                </div>
+                <div class="settle-row settle-form">
+                    <input class="actual-amount-input" type="number" step="0.01" min="0" placeholder="输入本期实收实付款">
+                    <button class="ghost-btn manual-btn" type="button">记录并进入下一期</button>
+                </div>
+            </div>
+        </div>
+    </article>
+</template>
+
+<script src="/app.js"></script>
+</body>
+</html>
