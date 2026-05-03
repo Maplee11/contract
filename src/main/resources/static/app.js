@@ -1,8 +1,11 @@
 const form = document.getElementById("contractForm");
+const formPanel = document.getElementById("contractFormPanel");
+const formCollapse = document.getElementById("contractFormCollapse");
 const formMessage = document.getElementById("formMessage");
 const formTitle = document.getElementById("formTitle");
 const submitButton = document.getElementById("submitButton");
 const cancelEditButton = document.getElementById("cancelEditButton");
+const toggleContractFormButton = document.getElementById("toggleContractFormButton");
 const contractList = document.getElementById("contractList");
 const profitList = document.getElementById("profitList");
 const reminderList = document.getElementById("reminderList");
@@ -35,6 +38,8 @@ let dashboardState = {
     profitStats: [],
     inputSuggestions: {}
 };
+
+let isContractFormCollapsed = false;
 
 async function request(url, options = {}) {
     const response = await fetch(url, {
@@ -336,6 +341,7 @@ function applyProfitValue(node, value) {
 }
 
 function startEdit(contract) {
+    setContractFormCollapsed(false);
     form.contractId.value = contract.id;
     form.type.value = contract.type;
     form.signatoryCompany.value = contract.signatoryCompany;
@@ -364,6 +370,24 @@ function resetForm() {
     submitButton.textContent = "保存合同";
     cancelEditButton.hidden = true;
     refreshDateInputState();
+    syncContractFormHeight();
+}
+
+function setContractFormCollapsed(collapsed) {
+    isContractFormCollapsed = collapsed;
+    formPanel.classList.toggle("is-collapsed", collapsed);
+    formCollapse.classList.toggle("is-collapsed", collapsed);
+    formCollapse.setAttribute("aria-hidden", String(collapsed));
+    toggleContractFormButton.setAttribute("aria-expanded", String(!collapsed));
+    toggleContractFormButton.title = collapsed ? "展开录入合同区域" : "收起录入合同区域";
+    toggleContractFormButton.classList.toggle("is-collapsed", collapsed);
+    formCollapse.style.maxHeight = collapsed ? "0px" : `${form.scrollHeight}px`;
+}
+
+function syncContractFormHeight() {
+    if (!isContractFormCollapsed) {
+        formCollapse.style.maxHeight = `${form.scrollHeight}px`;
+    }
 }
 
 async function removeContract(contractId) {
@@ -398,6 +422,12 @@ cancelEditButton.addEventListener("click", () => {
     resetForm();
     formMessage.textContent = "";
 });
+
+toggleContractFormButton.addEventListener("click", () => {
+    setContractFormCollapsed(!isContractFormCollapsed);
+});
+
+window.addEventListener("resize", syncContractFormHeight);
 
 reminderFilter.addEventListener("change", () => {
     renderReminders(dashboardState.reminders);
@@ -449,5 +479,7 @@ dateInputs.forEach((input) => {
 loadDashboard().catch((error) => {
     formMessage.textContent = error.message;
 });
+
+syncContractFormHeight();
 
 refreshDateInputState();

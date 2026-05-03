@@ -107,6 +107,50 @@ label span,
     margin-bottom: 20px;
 }
 
+.form-panel.is-collapsed .section-title {
+    margin-bottom: 0;
+}
+
+.collapsible-content {
+    overflow: hidden;
+    opacity: 1;
+    transform: translateY(0);
+    transform-origin: top;
+    transition: max-height 0.3s ease, opacity 0.22s ease, transform 0.3s ease;
+}
+
+.collapsible-content.is-collapsed {
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+}
+
+.collapse-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+    cursor: pointer;
+}
+
+.collapse-arrow {
+    width: 10px;
+    height: 10px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg) translateY(-1px);
+    transition: transform 0.18s ease;
+}
+
+.collapse-btn.is-collapsed .collapse-arrow {
+    transform: rotate(-135deg) translate(-1px, -1px);
+}
+
 .panel-description {
     margin: 10px 0 20px;
 }
@@ -297,6 +341,12 @@ button:hover {
 .meta-list dd,
 .meta-list dt {
     margin: 0;
+}
+
+.current-amount-row dt,
+.current-amount-row dd {
+    font-size: 17px;
+    font-weight: 700;
 }
 
 .progress-block {

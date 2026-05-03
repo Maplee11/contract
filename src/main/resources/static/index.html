@@ -21,70 +21,82 @@
     </aside>
 
     <main class="main-panel">
-        <section class="glass-panel">
+        <section id="contractFormPanel" class="glass-panel form-panel">
             <div class="section-title">
                 <h2 id="formTitle">录入合同</h2>
+                <button
+                        type="button"
+                        id="toggleContractFormButton"
+                        class="collapse-btn"
+                        aria-expanded="true"
+                        aria-controls="contractForm"
+                        title="收起录入合同区域"
+                >
+                    <span class="collapse-arrow" aria-hidden="true"></span>
+                </button>
             </div>
 
-            <form id="contractForm" class="contract-form">
-                <input type="hidden" name="contractId">
-                <label>
-                    <span>首选项</span>
-                    <select name="type" required>
-                        <option value="RECEIVABLE">应收款</option>
-                        <option value="PAYABLE">应付款</option>
-                    </select>
-                </label>
-                <label>
-                    <span>签约单位</span>
-                    <input type="text" name="signatoryCompany" list="signatoryCompanyList" required>
-                </label>
-                <label>
-                    <span>对方单位</span>
-                    <input type="text" name="counterpartyCompany" list="counterpartyCompanyList" required>
-                </label>
-                <label>
-                    <span>项目名称</span>
-                    <input type="text" name="projectName" list="projectNameList" required>
-                </label>
-                <label>
-                    <span>签约时间</span>
-                    <input type="date" class="date-input" name="signingDate" required>
-                </label>
-                <label>
-                    <span>签约面积 (m²)</span>
-                    <input type="text" name="signedArea" list="signedAreaList" required>
-                </label>
-                <label>
-                    <span>起租时间</span>
-                    <input type="date" class="date-input" name="leaseStartDate" required>
-                </label>
-                <label>
-                    <span>免租截止日</span>
-                    <input type="date" class="date-input" name="rentFreeEndDate">
-                </label>
-                <label>
-                    <span>合同终止时间</span>
-                    <input type="date" class="date-input" name="contractEndDate" required>
-                </label>
-                <label>
-                    <span>月租金（元）</span>
-                    <input type="number" step="0.01" min="0" name="monthlyRent" required>
-                </label>
-                <label>
-                    <span>月物业费（元）</span>
-                    <input type="number" step="0.01" min="0" name="monthlyPropertyFee" required>
-                </label>
-                <label>
-                    <span>缴费周期（月）</span>
-                    <input type="number" min="1" name="paymentCycleMonths" required>
-                </label>
-                <div class="form-actions">
-                    <button type="submit" id="submitButton" class="primary-btn">保存合同</button>
-                    <button type="button" id="cancelEditButton" class="ghost-btn" hidden>取消编辑</button>
-                    <p id="formMessage" class="form-message"></p>
-                </div>
-            </form>
+            <div id="contractFormCollapse" class="collapsible-content">
+                <form id="contractForm" class="contract-form">
+                    <input type="hidden" name="contractId">
+                    <label>
+                        <span>首选项</span>
+                        <select name="type" required>
+                            <option value="RECEIVABLE">应收款</option>
+                            <option value="PAYABLE">应付款</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span>签约单位</span>
+                        <input type="text" name="signatoryCompany" list="signatoryCompanyList" required>
+                    </label>
+                    <label>
+                        <span>对方单位</span>
+                        <input type="text" name="counterpartyCompany" list="counterpartyCompanyList" required>
+                    </label>
+                    <label>
+                        <span>项目名称</span>
+                        <input type="text" name="projectName" list="projectNameList" required>
+                    </label>
+                    <label>
+                        <span>签约时间</span>
+                        <input type="date" class="date-input" name="signingDate" required>
+                    </label>
+                    <label>
+                        <span>签约面积 (m²)</span>
+                        <input type="text" name="signedArea" list="signedAreaList" required>
+                    </label>
+                    <label>
+                        <span>起租时间</span>
+                        <input type="date" class="date-input" name="leaseStartDate" required>
+                    </label>
+                    <label>
+                        <span>免租截止日</span>
+                        <input type="date" class="date-input" name="rentFreeEndDate">
+                    </label>
+                    <label>
+                        <span>合同终止时间</span>
+                        <input type="date" class="date-input" name="contractEndDate" required>
+                    </label>
+                    <label>
+                        <span>月租金（元）</span>
+                        <input type="number" step="0.01" min="0" name="monthlyRent" required>
+                    </label>
+                    <label>
+                        <span>月物业费（元）</span>
+                        <input type="number" step="0.01" min="0" name="monthlyPropertyFee" required>
+                    </label>
+                    <label>
+                        <span>缴费周期（月）</span>
+                        <input type="number" min="1" name="paymentCycleMonths" required>
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" id="submitButton" class="primary-btn">保存合同</button>
+                        <button type="button" id="cancelEditButton" class="ghost-btn" hidden>取消编辑</button>
+                        <p id="formMessage" class="form-message"></p>
+                    </div>
+                </form>
+            </div>
         </section>
 
         <section class="glass-panel">
@@ -229,16 +241,16 @@
         <p class="company-name"></p>
         <dl class="meta-list">
             <div>
-                <dt class="current-label"></dt>
-                <dd class="current-amount"></dd>
-            </div>
-            <div>
                 <dt class="cumulative-due-label"></dt>
                 <dd class="cumulative-due-amount"></dd>
             </div>
             <div>
                 <dt class="cumulative-actual-label"></dt>
                 <dd class="cumulative-actual-amount"></dd>
+            </div>
+            <div class="current-amount-row">
+                <dt class="current-label"></dt>
+                <dd class="current-amount"></dd>
             </div>
             <div>
                 <dt>欠费统计</dt>
