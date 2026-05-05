@@ -17,7 +17,7 @@
 mvn spring-boot:run
 ```
 
-启动后访问 [http://localhost:62781](http://localhost:62781)。
+启动后程序会自动打开浏览器，默认访问 [http://localhost:62781](http://localhost:62781)。
 
 ## 打包
 
@@ -31,10 +31,10 @@ mvn clean package
 
 1. 安装 Java 17 或更高版本
 2. 将 jar 文件复制到目标机器
-3. 双击或执行命令启动：
+3. 在项目根目录双击 `start-windows.bat`，或执行命令启动：
 
 ```bash
 java -jar contract-reminder-1.0.0.jar
 ```
 
-应用启动后在浏览器打开 `http://localhost:62781` 即可。
+应用启动后会自动打开浏览器，默认地址为 `http://localhost:62781`。
